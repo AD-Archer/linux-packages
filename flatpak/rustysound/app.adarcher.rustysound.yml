@@ -1,30 +1,66 @@
 app-id: app.adarcher.rustysound
-runtime: org.freedesktop.Platform
-runtime-version: "24.08"
-sdk: org.freedesktop.Sdk
-sdk-extensions:
-  - org.freedesktop.Sdk.Extension.rust-stable
-build-options:
-  append-path: /usr/lib/sdk/rust-stable/bin
+runtime: org.gnome.Platform
+runtime-version: "49"
+sdk: org.gnome.Sdk
+add-build-extensions:
+  org.freedesktop.Sdk.Extension.rust-stable:
+    version: "25.08"
+    directory: lib/sdk/rust-stable
 command: rustysound
 finish-args:
+  - --socket=session-bus
+  - --share=ipc
   - --share=network
-  - --socket=wayland
-  - --socket=fallback-x11
+  - --env=GDK_BACKEND=x11
+  - --env=DISPLAY=:0
+  - --socket=x11
   - --socket=pulseaudio
   - --device=dri
   - --filesystem=xdg-download
+
 modules:
-  - name: rustysound
+  - name: libxdo
     buildsystem: simple
     build-commands:
+      - make
+      - mkdir -p /app/lib
+      - cp -av libxdo.so* /app/lib/
+    sources:
+      - type: git
+        url: https://github.com/jordansissel/xdotool.git
+        tag: v3.20211022.1
+
+  - name: rustysound
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        RUSTFLAGS: "-L native=/app/lib"
+        LIBRARY_PATH: "/app/lib"
+    build-commands:
       - cargo --version
-      - cargo build --release --locked --no-default-features --features desktop
+      - mkdir -p .cargo
+      - |
+        cat > .cargo/config.toml <<'EOF'
+        [source.crates-io]
+        replace-with = "vendored-sources"
+        [source.vendored-sources]
+        directory = "cargo/vendor"
+        EOF
+      - cargo build --offline --release --locked --no-default-features --features desktop
       - install -Dm755 target/release/rustysound /app/bin/rustysound
-      - install -Dm644 packaging/flatpak/app.adarcher.rustysound.desktop /app/share/applications/app.adarcher.rustysound.desktop
-      - install -Dm644 packaging/flatpak/app.adarcher.rustysound.metainfo.xml /app/share/metainfo/app.adarcher.rustysound.metainfo.xml
+      - mkdir -p /app/bin/assets
+      - cp -a assets/. /app/bin/assets/
+      - install -Dm644 app.adarcher.rustysound.desktop /app/share/applications/app.adarcher.rustysound.desktop
+      - install -Dm644 app.adarcher.rustysound.metainfo.xml /app/share/metainfo/app.adarcher.rustysound.metainfo.xml
       - install -Dm644 assets/web-app-manifest-512x512.png /app/share/icons/hicolor/512x512/apps/app.adarcher.rustysound.png
     sources:
       - type: archive
-        url: https://github.com/AD-Archer/RustySound/archive/refs/tags/v0.1.62.tar.gz
-        sha256: f90cbde08f92359dd0cce1dad2d0309cb24e903b15c3a77ba0074f7a96885930
+        url: https://github.com/AD-Archer/RustySound/archive/refs/tags/v0.1.63.tar.gz
+        sha256: d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed
+        strip-components: 1
+      - type: file
+        path: app.adarcher.rustysound.desktop
+      - type: file
+        path: app.adarcher.rustysound.metainfo.xml
+      - cargo-sources.json

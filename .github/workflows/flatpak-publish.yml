@@ -1,0 +1,66 @@
+name: Publish Flatpak Repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'flatpak/rustysound/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder appstream
+
+      - name: Install runtimes and SDK extensions
+        run: |
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub \
+            org.gnome.Platform//49 \
+            org.gnome.Sdk//49 \
+            org.freedesktop.Sdk.Extension.rust-stable//25.08
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder --force-clean build-dir flatpak/rustysound/app.adarcher.rustysound.yml
+
+      - name: Export OSTree repo and bundle
+        run: |
+          mkdir -p public/repo
+          flatpak build-export public/repo build-dir
+          flatpak build-bundle public/repo public/rustysound.flatpak app.adarcher.rustysound
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
