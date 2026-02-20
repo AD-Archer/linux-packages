@@ -6,6 +6,9 @@ on:
     paths:
       - 'flatpak/rustysound/**'
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Sync From RustySound Release"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -18,6 +21,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,6 +50,35 @@ jobs:
           flatpak build-export public/repo build-dir
           flatpak build-bundle public/repo public/rustysound.flatpak app.adarcher.rustysound
 
+      - name: Create Pages index
+        run: |
+          cat > public/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>RustySound Flatpak Repo</title>
+            <style>
+              body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+              code { background: #f4f4f4; padding: 0.1rem 0.3rem; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <h1>RustySound Flatpak Repository</h1>
+            <p>Flatpak repo URL:</p>
+            <p><code>https://ad-archer.github.io/linux-packages/repo/</code></p>
+            <p>Install commands:</p>
+            <pre><code>flatpak remote-add --if-not-exists rustysound https://ad-archer.github.io/linux-packages/repo/
+flatpak install rustysound app.adarcher.rustysound
+flatpak run app.adarcher.rustysound</code></pre>
+            <p>Direct bundle:</p>
+            <p><a href="./rustysound.flatpak">rustysound.flatpak</a></p>
+          </body>
+          </html>
+          HTML
+          touch public/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -55,6 +88,7 @@ jobs:
           path: ./public
 
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
