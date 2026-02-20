@@ -69,9 +69,7 @@ jobs:
             <p>Flatpak repo URL:</p>
             <p><code>https://ad-archer.github.io/linux-packages/repo/</code></p>
             <p>Install commands:</p>
-            <pre><code>flatpak remote-add --if-not-exists rustysound https://ad-archer.github.io/linux-packages/repo/
-flatpak install rustysound app.adarcher.rustysound
-flatpak run app.adarcher.rustysound</code></pre>
+            <pre><code>flatpak remote-add --if-not-exists rustysound https://ad-archer.github.io/linux-packages/repo/ && flatpak install rustysound app.adarcher.rustysound && flatpak run app.adarcher.rustysound</code></pre>
             <p>Direct bundle:</p>
             <p><a href="./rustysound.flatpak">rustysound.flatpak</a></p>
           </body>
