@@ -1,0 +1,108 @@
+name: Sync From RustySound Release
+
+on:
+  repository_dispatch:
+    types: [rustysound-release]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "RustySound release tag (e.g. v0.1.62)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            TAG="${{ github.event.client_payload.version }}"
+          else
+            TAG="${{ inputs.release_tag }}"
+          fi
+
+          if [[ -z "${TAG}" ]]; then
+            echo "No release tag provided"
+            exit 1
+          fi
+
+          if [[ "${TAG}" != v* ]]; then
+            TAG="v${TAG}"
+          fi
+
+          VERSION="${TAG#v}"
+          URL="https://github.com/AD-Archer/RustySound/archive/refs/tags/${TAG}.tar.gz"
+
+          curl -fL "${URL}" -o /tmp/rustysound-release.tar.gz
+          SHA="$(sha256sum /tmp/rustysound-release.tar.gz | awk '{print $1}')"
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Update Flatpak + AUR metadata
+        run: |
+          set -euo pipefail
+          TAG='${{ steps.version.outputs.tag }}'
+          VERSION='${{ steps.version.outputs.version }}'
+          URL='${{ steps.version.outputs.url }}'
+          SHA='${{ steps.version.outputs.sha }}'
+
+          sed -i -E "s|^[[:space:]]*url: https://github.com/AD-Archer/RustySound/archive/refs/tags/v[^/]+\.tar\.gz$|        url: ${URL}|" flatpak/rustysound/app.adarcher.rustysound.yml
+          sed -i -E "s|^[[:space:]]*sha256: [a-f0-9]{64}$|        sha256: ${SHA}|" flatpak/rustysound/app.adarcher.rustysound.yml
+
+          sed -i -E "s|^pkgver=.*$|pkgver=${VERSION}|" aur/rustysound/PKGBUILD
+          sed -i -E "s|^sha256sums=\('[a-f0-9]{64}'\)$|sha256sums=('${SHA}')|" aur/rustysound/PKGBUILD
+
+      - name: Regenerate Flatpak cargo-sources.json
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y python3-venv git
+
+          rm -rf /tmp/rustysound-src /tmp/flatpak-builder-tools /tmp/fcg-venv
+          mkdir -p /tmp/rustysound-src
+          tar -xzf /tmp/rustysound-release.tar.gz -C /tmp/rustysound-src
+
+          LOCK_FILE="$(find /tmp/rustysound-src -name Cargo.lock | head -n1)"
+          if [[ -z "${LOCK_FILE}" ]]; then
+            echo "Cargo.lock not found in release tarball"
+            exit 1
+          fi
+
+          git clone --depth=1 https://github.com/flatpak/flatpak-builder-tools /tmp/flatpak-builder-tools
+          python3 -m venv /tmp/fcg-venv
+          source /tmp/fcg-venv/bin/activate
+          pip install -q aiohttp requests toml tomlkit tqdm
+          python /tmp/flatpak-builder-tools/cargo/flatpak-cargo-generator.py \
+            -o flatpak/rustysound/cargo-sources.json \
+            "${LOCK_FILE}"
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            flatpak/rustysound/app.adarcher.rustysound.yml \
+            flatpak/rustysound/cargo-sources.json \
+            aur/rustysound/PKGBUILD
+
+          if git diff --cached --quiet; then
+            echo "No packaging changes to commit."
+            exit 0
+          fi
+
+          git commit -m "sync: RustySound ${{ steps.version.outputs.tag }}"
+          git push
