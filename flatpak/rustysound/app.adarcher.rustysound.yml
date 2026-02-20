@@ -1,0 +1,26 @@
+app-id: app.adarcher.rustysound
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+command: rustysound
+finish-args:
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=xdg-download
+modules:
+  - name: rustysound
+    buildsystem: simple
+    build-commands:
+      - cargo --version
+      - cargo build --release --locked --no-default-features --features desktop
+      - install -Dm755 target/release/rustysound /app/bin/rustysound
+      - install -Dm644 packaging/flatpak/app.adarcher.rustysound.desktop /app/share/applications/app.adarcher.rustysound.desktop
+      - install -Dm644 packaging/flatpak/app.adarcher.rustysound.metainfo.xml /app/share/metainfo/app.adarcher.rustysound.metainfo.xml
+      - install -Dm644 assets/web-app-manifest-512x512.png /app/share/icons/hicolor/512x512/apps/app.adarcher.rustysound.png
+    sources:
+      - type: archive
+        url: https://github.com/AD-Archer/RustySound/archive/refs/tags/v1.0.0.tar.gz
+        sha256: REPLACE_WITH_SHA256

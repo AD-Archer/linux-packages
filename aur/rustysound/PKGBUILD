@@ -1,0 +1,34 @@
+pkgname=rustysound
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Cross-platform music streaming client for Navidrome/Subsonic servers"
+arch=('x86_64' 'aarch64')
+url="https://github.com/AD-Archer/RustySound"
+license=('MIT')
+depends=(
+  'webkit2gtk-4.1'
+  'gtk3'
+  'libxdo'
+  'openssl'
+)
+makedepends=(
+  'cargo'
+  'rust'
+  'pkgconf'
+  'clang'
+)
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/AD-Archer/RustySound/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('REPLACE_WITH_SHA256')
+
+build() {
+  cd "${srcdir}/RustySound-"*
+  cargo build --release --locked --no-default-features --features desktop
+}
+
+package() {
+  cd "${srcdir}/RustySound-"*
+  install -Dm755 "target/release/rustysound" "${pkgdir}/usr/bin/rustysound"
+  install -Dm644 "packaging/aur/rustysound.desktop" "${pkgdir}/usr/share/applications/rustysound.desktop"
+  install -Dm644 "assets/web-app-manifest-512x512.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/rustysound.png"
+  install -Dm644 "LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

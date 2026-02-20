@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=RustySound
+Comment=Music streaming client for Navidrome/Subsonic servers
+Exec=rustysound
+Icon=rustysound
+Terminal=false
+Categories=AudioVideo;Audio;Player;

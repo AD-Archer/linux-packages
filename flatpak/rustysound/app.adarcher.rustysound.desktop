@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=RustySound
+Comment=Music streaming client for Navidrome/Subsonic servers
+Exec=rustysound
+Icon=app.adarcher.rustysound
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+StartupNotify=true
