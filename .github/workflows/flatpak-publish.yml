@@ -30,7 +30,7 @@ jobs:
       - name: Install tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder appstream
+          sudo apt-get install -y flatpak flatpak-builder appstream gnupg
 
       - name: Install runtimes and SDK extensions
         run: |
@@ -40,15 +40,51 @@ jobs:
             org.gnome.Sdk//49 \
             org.freedesktop.Sdk.Extension.rust-stable//25.08
 
+      - name: Import signing key
+        env:
+          FLATPAK_GPG_KEY_ID: ${{ secrets.FLATPAK_GPG_KEY_ID }}
+          FLATPAK_GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLATPAK_GPG_KEY_ID:-}" ] || [ -z "${FLATPAK_GPG_PRIVATE_KEY:-}" ]; then
+            echo "Missing FLATPAK_GPG_KEY_ID or FLATPAK_GPG_PRIVATE_KEY secret."
+            exit 1
+          fi
+          mkdir -p "$HOME/.gnupg"
+          chmod 700 "$HOME/.gnupg"
+          printf '%s' "$FLATPAK_GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --batch --list-secret-keys "$FLATPAK_GPG_KEY_ID"
+
       - name: Build Flatpak
         run: |
           flatpak-builder --force-clean build-dir flatpak/rustysound/app.adarcher.rustysound.yml
 
-      - name: Export OSTree repo and bundle
+      - name: Export signed OSTree repo and bundle
+        env:
+          FLATPAK_GPG_KEY_ID: ${{ secrets.FLATPAK_GPG_KEY_ID }}
         run: |
+          set -euo pipefail
           mkdir -p public/repo
-          flatpak build-export public/repo build-dir
-          flatpak build-bundle public/repo public/rustysound.flatpak app.adarcher.rustysound
+          flatpak build-export \
+            --gpg-sign="$FLATPAK_GPG_KEY_ID" \
+            --gpg-homedir="$HOME/.gnupg" \
+            public/repo build-dir
+          flatpak build-bundle \
+            --gpg-sign="$FLATPAK_GPG_KEY_ID" \
+            --gpg-homedir="$HOME/.gnupg" \
+            public/repo public/rustysound.flatpak app.adarcher.rustysound
+
+          gpg --batch --yes --output public/rustysound.gpg --export "$FLATPAK_GPG_KEY_ID"
+          GPG_B64="$(base64 -w 0 public/rustysound.gpg)"
+          {
+            echo "[Flatpak Repo]"
+            echo "Title=RustySound"
+            echo "Url=https://ad-archer.github.io/linux-packages/repo/"
+            echo "Homepage=https://github.com/AD-Archer/RustySound"
+            echo "Comment=Official RustySound Flatpak repository"
+            echo "Description=Install RustySound directly from AD-Archer's Flatpak repository."
+            echo "GPGKey=${GPG_B64}"
+          } > public/rustysound.flatpakrepo
 
       - name: Create Pages index
         run: |
@@ -68,10 +104,16 @@ jobs:
             <h1>RustySound Flatpak Repository</h1>
             <p>Flatpak repo URL:</p>
             <p><code>https://ad-archer.github.io/linux-packages/repo/</code></p>
-            <p>Install commands:</p>
-            <pre><code>flatpak remote-add --if-not-exists rustysound https://ad-archer.github.io/linux-packages/repo/ && flatpak install rustysound app.adarcher.rustysound && flatpak run app.adarcher.rustysound</code></pre>
+            <p>Add repository:</p>
+            <p><code>flatpak remote-add --if-not-exists rustysound https://ad-archer.github.io/linux-packages/rustysound.flatpakrepo</code></p>
+            <p>Install app:</p>
+            <p><code>flatpak install rustysound app.adarcher.rustysound</code></p>
+            <p>Run app:</p>
+            <p><code>flatpak run app.adarcher.rustysound</code></p>
             <p>Direct bundle:</p>
             <p><a href="./rustysound.flatpak">rustysound.flatpak</a></p>
+            <p>Remote file:</p>
+            <p><a href="./rustysound.flatpakrepo">rustysound.flatpakrepo</a></p>
           </body>
           </html>
           HTML

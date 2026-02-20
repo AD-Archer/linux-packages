@@ -49,6 +49,8 @@ modules:
         EOF
       - cargo build --offline --release --locked --no-default-features --features desktop
       - install -Dm755 target/release/rustysound /app/bin/rustysound
+      - mkdir -p /app/lib/RustySound/assets
+      - cp -a assets/. /app/lib/RustySound/assets/
       - mkdir -p /app/bin/assets
       - cp -a assets/. /app/bin/assets/
       - install -Dm644 app.adarcher.rustysound.desktop /app/share/applications/app.adarcher.rustysound.desktop
