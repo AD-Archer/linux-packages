@@ -45,7 +45,7 @@ Once Pages deployment succeeds, users can install with:
 
 ```bash
 flatpak remote-add --if-not-exists --user adarcher-rustysound https://ad-archer.github.io/packages/repo
-flatpak install --user adarcher-rustysound app.adarcher.rustysound
+flatpak install --user adarcher-rustysound app.adarcher.rustysound//stable
 flatpak run app.adarcher.rustysound
 ```
 
@@ -53,6 +53,9 @@ Update existing installs:
 
 ```bash
 flatpak update --user app.adarcher.rustysound
+
+# If you installed an older branch before this compatibility change:
+flatpak install --user adarcher-rustysound app.adarcher.rustysound//stable
 ```
 
 Remove remote/app:
