@@ -139,7 +139,7 @@ jobs:
             <p>Add repository:</p>
             <p><code>flatpak remote-add --if-not-exists --user rustysound https://ad-archer.github.io/packages/rustysound.flatpakrepo</code></p>
             <p>Install app:</p>
-            <p><code>flatpak install --user rustysound app.adarcher.rustysound</code></p>
+            <p><code>flatpak install --user rustysound app.adarcher.rustysound//stable</code></p>
             <p>Run app:</p>
             <p><code>flatpak run app.adarcher.rustysound</code></p>
               <p>Project page:</p>
