@@ -87,8 +87,7 @@ jobs:
             flatpak build-export \
               --gpg-sign="$FLATPAK_GPG_KEY_ID" \
               --gpg-homedir="$HOME/.gnupg" \
-              --branch=stable \
-              public/repo build-dir
+              public/repo build-dir stable
             flatpak build-bundle \
               --gpg-sign="$FLATPAK_GPG_KEY_ID" \
               --gpg-homedir="$HOME/.gnupg" \
@@ -96,7 +95,7 @@ jobs:
             gpg --batch --yes --output public/rustysound.gpg --export "$FLATPAK_GPG_KEY_ID"
           else
             flatpak build-export public/repo build-dir
-            flatpak build-export --branch=stable public/repo build-dir
+            flatpak build-export public/repo build-dir stable
             flatpak build-bundle public/repo public/rustysound.flatpak app.adarcher.rustysound stable
           fi
 
