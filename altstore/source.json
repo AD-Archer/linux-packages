@@ -21,6 +21,15 @@
       "category": "utilities",
       "versions": [
         {
+          "version": "3.1.93",
+          "buildVersion": "3.1.93",
+          "date": "2026-04-28T19:18:05Z",
+          "localizedDescription": "**Full Changelog**: https://github.com/AD-Archer/RustySound/compare/v3.1.92...v3.1.93",
+          "downloadURL": "https://github.com/AD-Archer/RustySound/releases/download/v3.1.93/Rustysound-unsigned.ipa",
+          "size": 7550248,
+          "minOSVersion": "15.0"
+        },
+        {
           "version": "3.1.92",
           "buildVersion": "3.1.92",
           "date": "2026-04-27T17:32:41Z",
